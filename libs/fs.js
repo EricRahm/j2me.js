@@ -97,6 +97,7 @@ var fs = (function() {
         cb(-1);
       } else {
         var reader = new FileReader();
+        console.log("opened: " + path);
         reader.addEventListener("loadend", function() {
           var fd = openedFiles.push({
             dirty: false,
@@ -111,11 +112,24 @@ var fs = (function() {
     });
   }
 
-  function close(fd) {
+  function close(fd, cb) {
+    console.log("contemplating closing: " + fd);
     if (fd >= 0 && openedFiles[fd]) {
-      // Replace descriptor object with null value instead of removing it from
-      // the array so we don't change the indexes of the other objects.
-      openedFiles.splice(fd, 1, null);
+      console.log("flushing: " + openedFiles[fd].path);
+      flush(fd, function() {
+        console.log("removing: " + openedFiles[fd].path);
+        // Replace descriptor object with null value instead of removing it from
+        // the array so we don't change the indexes of the other objects.
+        openedFiles.splice(fd, 1, null);
+        if (cb) {
+          console.log("should be removed, openedFiles[" + fd + "] = " + openedFiles[fd]);
+          cb();
+        }
+      });
+    } else {
+      if (cb) {
+        cb();
+      }
     }
   }
 
@@ -183,6 +197,7 @@ var fs = (function() {
   function flush(fd, cb) {
     // Bail early if the file has not been modified.
     if (!openedFiles[fd].dirty) {
+      console.log("flush bailing early for: " + openedFiles[fd].path); 
       cb();
       return;
     }
@@ -245,12 +260,14 @@ var fs = (function() {
     path = normalizePath(path);
 
     if (openedFiles.findIndex(file => file && file.path === path) != -1) {
+      console.log("XXXX remove failed: file is already open: " + path);
       setTimeout(() => cb(false), 0);
       return;
     }
 
     list(path, function(files) {
       if (files != null && files.length > 0) {
+        console.log("XXXX remove failed: it's a non-empty dir! " + path + " : " + files);
         cb(false);
         return;
       }
@@ -262,6 +279,7 @@ var fs = (function() {
         var index = -1;
 
         if (files == null || (index = files.indexOf(name)) < 0) {
+          console.log("XXXX remove failed: file doesn't exist?");
           cb(false);
           return;
         }

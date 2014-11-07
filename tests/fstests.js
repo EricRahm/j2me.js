@@ -556,7 +556,7 @@ tests.push(function() {
 
 tests.push(function() {
   fs.size("/tmp/tmp.txt", function(size) {
-    is(size, 12, "file's size is 12");
+    is(size, 131079, "file's size after closing is 131079");
     next();
   });
 });
